@@ -6,6 +6,8 @@
 #define threads 8
 unsigned char archivo[MAX_SIZE]; 
 int histograma[256];
+double histogramaProcesado[256];
+
 
 int obtenerDatosImagen(char* imagen){
     char *file_name = imagen;
@@ -36,24 +38,35 @@ void imprimirDatosImagen(unsigned char* data){
     printf("\n");    
 }
 
-void imprimirHistograma(int* data){
+void imprimirHistogramaInt(int* data) {
     for(int i=0;i<256;i++){
-        printf("%3d : %4d \n",i,data[i]);
+        printf("\n%3d : %4d",i,data[i]);
     }
 }
 
-void normalizarHistograma(int* histogramaOriginal,int* histogramaNormalizado){
+void imprimirHistogramaDouble(double* data) { 
+    for(int i=0;i<256;i++){
+        printf("\n%3d : %f",i,data[i]);
+    }
+}
+
+
+void normalizarHistograma(int* histogramaOriginal,double* histogramaNormalizado){
     int sum = 0;
     #pragma omp parallel for reduction(+:sum)
     for (int i = 0; i < 256; ++i) {
         sum += histogramaOriginal[i];
     }
 
-
-
-
-
-
+    double sumaTMP = 0;
+    double factorEscala = 1.0 / sum;
+    #pragma omp parallel for
+    for (int i = 0; i < 256; ++i) {
+        histogramaNormalizado[i] = (double)(histogramaOriginal[i] * factorEscala );
+        //histogramaNormalizado[i] = (double)(histogramaOriginal[i] * factorEscala * 255.0); // si se elimina el 255, la normalizacion ocurrira de 0 a 1
+        sumaTMP+=histogramaNormalizado[i];
+    }
+    printf("\nSuma normalizada : %f",sumaTMP);
 }
 
 int main() {
@@ -73,7 +86,10 @@ int main() {
         }
     }
 
-    imprimirHistograma(histograma);
+    imprimirHistogramaInt(histograma);
+    normalizarHistograma(histograma,histogramaProcesado);
+    imprimirHistogramaDouble(histogramaProcesado);
+
     
 
     return 0;
