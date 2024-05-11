@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #define MAX_SIZE 262144
 #define threads 8
@@ -13,27 +14,53 @@ int obtenerDatosImagen(char* imagen){
         perror("Error al abrir el archivo");
         return 1;
     }
+
     int byte;
     size_t index = 0;
     while ((byte = fgetc(file)) != EOF && index < MAX_SIZE) {
-        // Guardar el byte en el arreglo
-        archivo[index++] = (unsigned char)byte; // Convertido a unsigned char
+        if(index == MAX_SIZE)
+            printf("Advertencia: Se alcanzó el tamaño máximo del arreglo. Algunos bytes pueden no haber sido leídos.\n");
+        archivo[index++] = (unsigned char)byte; 
     }
-    /*if (index == MAX_SIZE) {
-        printf("Advertencia: Se alcanzó el tamaño máximo del arreglo. Algunos bytes pueden no haber sido leídos.\n");
-    }*/
+    
     fclose(file);
-    /*printf("Bytes leídos:\n");
-    for (size_t i = 0; i < index; i++) {
-        printf("%u ", archivo[i]); // Imprime como unsigned char
-    }
-    printf("\n");*/
+
     return index;
 }
 
+void imprimirDatosImagen(unsigned char* data){
+    printf("Bytes leídos:\n");
+    for (size_t i = 0; i < MAX_SIZE; i++) {
+        printf("%u ", data[i]); 
+    }
+    printf("\n");    
+}
+
+void imprimirHistograma(int* data){
+    for(int i=0;i<256;i++){
+        printf("%3d : %4d \n",i,data[i]);
+    }
+}
+
+void normalizarHistograma(int* histogramaOriginal,int* histogramaNormalizado){
+    int sum = 0;
+    #pragma omp parallel for reduction(+:sum)
+    for (int i = 0; i < 256; ++i) {
+        sum += histogramaOriginal[i];
+    }
+
+
+
+
+
+
+}
+
 int main() {
+    printf("Obteniendo datos de la imagen..\n");
     int size = obtenerDatosImagen("lena_gray.raw");
    
+    printf("Procesando...\n");
     for(int i=0;i<256;i++){
         histograma[i] = 0;
     }
@@ -46,9 +73,8 @@ int main() {
         }
     }
 
-    for(int i=0;i<256;i++){
-        printf("%3d : %4d \n",i,histograma[i]);
-    }
+    imprimirHistograma(histograma);
+    
 
     return 0;
 }
