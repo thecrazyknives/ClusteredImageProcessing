@@ -8,7 +8,7 @@
 unsigned char archivo[MAX_SIZE]; 
 int size;
 int histograma[256] = {0};
-double histogramaNormalizado[256] = {0};
+int histogramaNormalizado[256] = {0};
 double funcionTransformacion[256] = {0};
 
 
@@ -43,30 +43,38 @@ void llenarHistograma(int* hist){
     }
 }
 
-// paso 1: suma acumulativa
-
-// paso 2: normalizar los valores del paso 1 dividiendo entre el numero todal de pixeles
-
-// multiplicar los valores del paso 2 por el maximo valor de gris y redondear
-
-
-void normalizarHistograma(int* histogramaOriginal,double* histogramaNormalizado){
+void normalizarHistograma(int* histogramaOriginal,int* histogramaNormalizado){
     // suma acumulativa
-    int sum = 0, histogramaAcumulativo[256] = {0};
+    int sum = 0; 
+    //histogramaNormalizado = {0};
     for(int i = 1 ; i < 256 ; i++  ){
         sum += histograma[i];
-        histogramaAcumulativo[i] = sum;
+        histogramaNormalizado[i] = sum;
     }
 
-    //double sumaTMP = 0;
-    double factorEscala = 1.0 / sum;
+    int max_gray = 256; // este numero puede cambiar despues
+
+    double factor = max_gray / sum;
     #pragma omp parallel for
     for (int i = 0; i < 256; ++i) {
-        histogramaNormalizado[i] = (double)(histogramaOriginal[i] * factorEscala );
-        //histogramaNormalizado[i] = (double)(histogramaOriginal[i] * factorEscala * 255.0); // si se elimina el 255, la normalizacion ocurrira de 0 a 1
-        //sumaTMP+=histogramaNormalizado[i];
+        histogramaNormalizado[i] = (int)(histogramaOriginal[i] * factor );
     }
-    //printf("\nSuma normalizada : %f",sumaTMP);
+}
+
+void procesarDatosImagen(unsigned char* datos, int* histogramaNormalizado) {
+    for (int i = 0; i < size; ++i) {
+        datos[i] = (unsigned char)histogramaNormalizado[datos[i]];
+    }
+}
+
+void guardarImagen(unsigned char* datos){
+    FILE* archivoSalida = fopen("lena_gray_processed.raw", "wb");
+    if (archivoSalida == NULL) {
+        perror("Error al abrir el archivo para escritura");
+        return;
+    }
+    fwrite(datos, sizeof(unsigned char), size, archivoSalida);
+    fclose(archivoSalida);
 }
 
 void imprimirDatosImagen(unsigned char* data){
@@ -89,27 +97,13 @@ void imprimirHistogramaDouble(double* data) {
     }
 }
 
-
-
-
-
-void calcularFuncionTransformacion(int* histogramaNormalizado) {
+/* void calcularFuncionTransformacion(int* histogramaNormalizado) { // esto podria no ser necesario
     double sumaAcumulativa = 0.0;
     for (int i = 0; i < 256; ++i) {
         sumaAcumulativa += histogramaNormalizado[i];
         funcionTransformacion[i] = sumaAcumulativa / MAX_SIZE;
     }
-}
-
-/*void ajustarContraste(){
-    #pragma omp parallel shared(histograma) num_threads(threads)
-    {
-        #pragma omp parallel for
-        for (int i = 0; i < size; ++i) {
-            imagenSalida[i] = (unsigned char)(255.0 * funcionTransformacion[imagenOriginal[i]]);
-        }
-    }
-}*/
+} */
 
 int main() {
     printf("Obteniendo datos de la imagen..\n");
@@ -118,13 +112,15 @@ int main() {
     printf("Procesando...\n");
 
     llenarHistograma(histograma);
+    normalizarHistograma(histograma,histogramaNormalizado);
+    procesarDatosImagen(archivo,histogramaNormalizado);
+    guardarImagen(archivo);
 
-    imprimirHistogramaInt(histograma);
+    printf("Archivo procesado con exito!");
+
+    //imprimirHistogramaInt(histograma);
     //normalizarHistograma(histograma,histogramaNormalizado);
     //imprimirHistogramaDouble(histogramaNormalizado);
-
-    
-
+ 
     return 0;
 }
-
