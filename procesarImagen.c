@@ -5,18 +5,18 @@
 #define MAX_SIZE 262144
 #define threads 8
 
-unsigned char archivo[MAX_SIZE]; 
+unsigned char fileData[MAX_SIZE]; 
 int size;
-int histograma[256] = {0};
-int histogramaNormalizado[256] = {0};
-double funcionTransformacion[256] = {0};
+int histogram[256] = {0};
+int normalizedHistogram[256] = {0};
+double transformationFunction[256] = {0};
 
 
-int obtenerDatosImagen(char* imagen){
-    char *file_name = imagen;
+int getImageData(char* image){
+    char *file_name = image;
     FILE *file = fopen(file_name, "rb");
     if (file == NULL) {
-        perror("Error al abrir el archivo");
+        perror("Error opening file");
         return 1;
     }
 
@@ -24,8 +24,8 @@ int obtenerDatosImagen(char* imagen){
     size_t index = 0;
     while ((byte = fgetc(file)) != EOF && index < MAX_SIZE) {
         if(index == MAX_SIZE)
-            printf("Advertencia: Se alcanzó el tamaño máximo del arreglo. Algunos bytes pueden no haber sido leídos.\n");
-        archivo[index++] = (unsigned char)byte; 
+            printf("Warning: Maximum array size reached. Some bytes may not have been read.\n");
+        fileData[index++] = (unsigned char)byte; 
     }
     
     fclose(file);
@@ -33,94 +33,88 @@ int obtenerDatosImagen(char* imagen){
     return index;
 }
 
-void llenarHistograma(int* hist){
-    #pragma omp parallel shared(histograma) num_threads(threads)
+void fillHistogram(int* hist){
+    #pragma omp parallel shared(histogram) num_threads(threads)
     {
-        #pragma omp for //schedule(static)
+        #pragma omp for
         for (int i = 0; i < size; i++) {
-			histograma[archivo[i]] ++;
+			histogram[fileData[i]] ++;
         }
     }
 }
 
-void normalizarHistograma(int* histogramaOriginal,int* histogramaNormalizado){
-    // suma acumulativa
+void normalizeHistogram(int* originalHistogram, int* normalizedHistogram){
     int sum = 0; 
-    //histogramaNormalizado = {0};
     for(int i = 1 ; i < 256 ; i++  ){
-        sum += histograma[i];
-        histogramaNormalizado[i] = sum;
+        sum += histogram[i];
+        normalizedHistogram[i] = sum;
     }
 
-    int max_gray = 256; // este numero puede cambiar despues
+    int max_gray = 256; // this number may change later
 
     double factor = max_gray / sum;
     #pragma omp parallel for
     for (int i = 0; i < 256; ++i) {
-        histogramaNormalizado[i] = (int)(histogramaOriginal[i] * factor );
+        normalizedHistogram[i] = (int)(originalHistogram[i] * factor);
     }
 }
 
-void procesarDatosImagen(unsigned char* datos, int* histogramaNormalizado) {
+void processImageData(unsigned char* data, int* normalizedHistogram) {
     for (int i = 0; i < size; ++i) {
-        datos[i] = (unsigned char)histogramaNormalizado[datos[i]];
+        data[i] = (unsigned char)normalizedHistogram[data[i]];
     }
 }
 
-void guardarImagen(unsigned char* datos){
-    FILE* archivoSalida = fopen("lena_gray_processed.raw", "wb");
-    if (archivoSalida == NULL) {
-        perror("Error al abrir el archivo para escritura");
+void saveImage(unsigned char* data){
+    FILE* outputFile = fopen("lena_gray_processed.raw", "wb");
+    if (outputFile == NULL) {
+        perror("Error opening file for writing");
         return;
     }
-    fwrite(datos, sizeof(unsigned char), size, archivoSalida);
-    fclose(archivoSalida);
+    fwrite(data, sizeof(unsigned char), size, outputFile);
+    fclose(outputFile);
 }
 
-void imprimirDatosImagen(unsigned char* data){
-    printf("Bytes leídos:\n");
+void printImageData(unsigned char* data){
+    printf("Read bytes:\n");
     for (size_t i = 0; i < MAX_SIZE; i++) {
         printf("%u ", data[i]); 
     }
     printf("\n");    
 }
 
-void imprimirHistogramaInt(int* data) {
+void printHistogramInt(int* data) {
     for(int i=0;i<256;i++){
         printf("\n%3d : %4d",i,data[i]);
     }
 }
 
-void imprimirHistogramaDouble(double* data) { 
+void printHistogramDouble(double* data) { 
     for(int i=0;i<256;i++){
         printf("\n%3d : %f",i,data[i]);
     }
 }
 
-/* void calcularFuncionTransformacion(int* histogramaNormalizado) { // esto podria no ser necesario
-    double sumaAcumulativa = 0.0;
-    for (int i = 0; i < 256; ++i) {
-        sumaAcumulativa += histogramaNormalizado[i];
-        funcionTransformacion[i] = sumaAcumulativa / MAX_SIZE;
+int main(int argc, char** argv ) {
+    if(argc == 0){
+        // TODO: Check number of arguments
     }
-} */
 
-int main() {
-    printf("Obteniendo datos de la imagen..\n");
-    size = obtenerDatosImagen("lena_gray.raw");
+    printf("Getting image data..\n");
+    size = getImageData("lena_gray.raw");
    
-    printf("Procesando...\n");
+    printf("Processing...\n");
 
-    llenarHistograma(histograma);
-    normalizarHistograma(histograma,histogramaNormalizado);
-    procesarDatosImagen(archivo,histogramaNormalizado);
-    guardarImagen(archivo);
+    fillHistogram(histogram);
+    normalizeHistogram(histogram, normalizedHistogram);
+    processImageData(fileData, normalizedHistogram);
+    saveImage(fileData);
 
-    printf("Archivo procesado con exito!");
+    printf("File processed successfully!");
 
-    //imprimirHistogramaInt(histograma);
-    //normalizarHistograma(histograma,histogramaNormalizado);
-    //imprimirHistogramaDouble(histogramaNormalizado);
+    //printHistogramInt(histogram);
+    //normalizeHistogram(histogram, normalizedHistogram);
+    //printHistogramDouble(normalizedHistogram);
  
     return 0;
 }
