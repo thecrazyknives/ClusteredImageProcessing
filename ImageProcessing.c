@@ -3,7 +3,7 @@
 #include <omp.h>
 
 #define MAX_SIZE 262144
-#define threads 8
+#define MAX_THREADS 8
 
 unsigned char fileData[MAX_SIZE]; 
 int size;
@@ -34,7 +34,7 @@ int getImageData(char* image){
 }
 
 void fillHistogram(int* histogram){
-    #pragma omp parallel shared(histogram) num_threads(threads)
+    #pragma omp parallel shared(histogram) num_threads(MAX_THREADS)
     {
         #pragma omp for
         for (int i = 0; i < size; i++) {
