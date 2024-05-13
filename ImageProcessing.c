@@ -45,17 +45,22 @@ void fillHistogram(int* hist){
 
 void normalizeHistogram(int* originalHistogram, int* normalizedHistogram){
     int sum = 0; 
-    for(int i = 1 ; i < 256 ; i++  ){
+    for(int i = 0 ; i < 256 ; i++  ){
         sum += histogram[i];
         normalizedHistogram[i] = sum;
+        // printf("\n%3d : %4d",i,normalizedHistogram[i]);
     }
 
-    int max_gray = 256; // this number may change later
+    printf("ACUM: \n");
 
-    double factor = max_gray / sum;
+    int max_gray = 255; // this number may change later
+
+    double factor = ((double)max_gray / sum);   // printf("F: %f\n",factor);
+    
     #pragma omp parallel for
-    for (int i = 0; i < 256; ++i) {
-        normalizedHistogram[i] = (int)(originalHistogram[i] * factor);
+    for (int i = 0; i < 256; i++) {
+        normalizedHistogram[i] = (int)(normalizedHistogram[i] * factor);
+        //printf("\n%3d : %4d",i,normalizedHistogram[i]);
     }
 }
 
@@ -106,13 +111,23 @@ int main(int argc, char** argv ) {
     printf("Processing...\n");
 
     fillHistogram(histogram);
+        //printf("Original histogram: ----------------------------------------------------\n");
+        //printHistogramInt(histogram);
     normalizeHistogram(histogram, normalizedHistogram);
     processImageData(fileData, normalizedHistogram);
+
+    
     saveImage(fileData);
+        
+        //fillHistogram(histogram);
+        //printf("New histogram: ----------------------------------------------------\n");
+        //printHistogramInt(histogram);
+
+    printImageData(fileData);
+
 
     printf("File processed successfully!");
 
-    //printHistogramInt(histogram);
     //normalizeHistogram(histogram, normalizedHistogram);
     //printHistogramDouble(normalizedHistogram);
  
