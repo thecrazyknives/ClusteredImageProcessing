@@ -33,7 +33,7 @@ int getImageData(char* image){
     return index;
 }
 
-void fillHistogram(int* hist){
+void fillHistogram(int* histogram){
     #pragma omp parallel shared(histogram) num_threads(threads)
     {
         #pragma omp for
@@ -111,20 +111,10 @@ int main(int argc, char** argv ) {
     printf("Processing...\n");
 
     fillHistogram(histogram);
-        //printf("Original histogram: ----------------------------------------------------\n");
-        //printHistogramInt(histogram);
     normalizeHistogram(histogram, normalizedHistogram);
     processImageData(fileData, normalizedHistogram);
-
-    
     saveImage(fileData);
-        
-        //fillHistogram(histogram);
-        //printf("New histogram: ----------------------------------------------------\n");
-        //printHistogramInt(histogram);
-
     printImageData(fileData);
-
 
     printf("File processed successfully!");
 
