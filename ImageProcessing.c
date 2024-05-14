@@ -9,8 +9,6 @@ unsigned char fileData[MAX_SIZE];
 int size;
 int histogram[256] = {0};
 int normalizedHistogram[256] = {0};
-double transformationFunction[256] = {0};
-
 
 int getImageData(char* image){
     char *file_name = image;
@@ -94,16 +92,10 @@ void printHistogramInt(int* data) {
     }
 }
 
-void printHistogramDouble(double* data) { 
-    for(int i=0;i<256;i++){
-        printf("\n%3d : %f",i,data[i]);
-    }
-}
-
 int main(int argc, char** argv ) {
-   
+
     if(argc == 0){
-        // TODO: Check number of arguments
+        printf("Demo mode: \n");
     }
 
     printf("Getting image data..\n");
@@ -115,7 +107,7 @@ int main(int argc, char** argv ) {
     normalizeHistogram(histogram, normalizedHistogram);
     processImageData(fileData, normalizedHistogram);
     saveImage(fileData);
-    printImageData(fileData);
+    //printImageData(fileData);
 
     printf("File processed successfully!");
 
