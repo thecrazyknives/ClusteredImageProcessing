@@ -6,7 +6,7 @@
 #define MAX_THREADS 8
 
 unsigned char fileData[MAX_SIZE]; 
-int size;
+int DATA_SIZE;
 int histogram[256] = {0};
 int normalizedHistogram[256] = {0};
 
@@ -31,12 +31,12 @@ int getImageData(char* image){
     return index;
 }
 
-void fillHistogram(int* histogram){
+void fillHistogram(int* histogram,unsigned char* data){
     #pragma omp parallel shared(histogram) num_threads(MAX_THREADS)
     {
         #pragma omp for
-        for (int i = 0; i < size; i++) {
-			histogram[fileData[i]] ++;
+        for (int i = 0; i < DATA_SIZE; i++) {
+			histogram[data[i]] ++;
         }
     }
 }
@@ -44,26 +44,21 @@ void fillHistogram(int* histogram){
 void normalizeHistogram(int* originalHistogram, int* normalizedHistogram){
     int sum = 0; 
     for(int i = 0 ; i < 256 ; i++  ){
-        sum += histogram[i];
+        sum += originalHistogram[i];
         normalizedHistogram[i] = sum;
-        // printf("\n%3d : %4d",i,normalizedHistogram[i]);
     }
 
-    printf("ACUM: \n");
-
-    int max_gray = 255; // this number may change later
-
-    double factor = ((double)max_gray / sum);   // printf("F: %f\n",factor);
+    int max_gray = 255; 
+    double factor = ((double)max_gray / sum);
     
     #pragma omp parallel for
     for (int i = 0; i < 256; i++) {
         normalizedHistogram[i] = (int)(normalizedHistogram[i] * factor);
-        //printf("\n%3d : %4d",i,normalizedHistogram[i]);
     }
 }
 
 void processImageData(unsigned char* data, int* normalizedHistogram) {
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < DATA_SIZE; ++i) {
         data[i] = (unsigned char)normalizedHistogram[data[i]];
     }
 }
@@ -74,7 +69,7 @@ void saveImage(unsigned char* data){
         perror("Error opening file for writing");
         return;
     }
-    fwrite(data, sizeof(unsigned char), size, outputFile);
+    fwrite(data, sizeof(unsigned char), DATA_SIZE, outputFile);
     fclose(outputFile);
 }
 
@@ -99,20 +94,16 @@ int main(int argc, char** argv ) {
     }
 
     printf("Getting image data..\n");
-    size = getImageData("lena_gray.raw");
+    DATA_SIZE = getImageData("lena_gray.raw");
    
     printf("Processing...\n");
 
-    fillHistogram(histogram);
+    fillHistogram(histogram,fileData);
     normalizeHistogram(histogram, normalizedHistogram);
     processImageData(fileData, normalizedHistogram);
     saveImage(fileData);
-    //printImageData(fileData);
 
     printf("File processed successfully!");
 
-    //normalizeHistogram(histogram, normalizedHistogram);
-    //printHistogramDouble(normalizedHistogram);
- 
     return 0;
 }
