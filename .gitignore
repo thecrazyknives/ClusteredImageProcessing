@@ -1,0 +1,10 @@
+# Ignore object files and executables
+*.obj
+*.exe
+*.pdb
+*.ilk
+
+# Ignore image files that are not necessary for the compilation
+*.png
+*.xlsx
+*.pdf

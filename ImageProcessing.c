@@ -94,7 +94,7 @@ int main(int argc, char** argv ) {
     int localSize;
     int localHistogram[256] = {0};
     
-    char *image = "lena_gray.raw"
+    char *image = "lena_gray.raw";
     if(rank == 0) {         // Only root process loads the image
         DATA_SIZE = getImageData(image, fileData);
     }
